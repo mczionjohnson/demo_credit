@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon server.js",
     "migrate": "knex migrate:latest",
-    "rollback": "knex migrate:rollback"
+    "rollback": "knex migrate:rollback",
+    "create_table": "knex migrate:make create_users_and_wallets_tables",
+    "seed_users": "knex seed:make 01_users",
+    "seed_wallets": "knex seed:make 02_wallets"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +18,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "knex": "^3.1.0",
-    "mysql": "^2.18.1"
+    "mysql2": "^3.10.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.3"
