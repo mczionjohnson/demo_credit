@@ -47,8 +47,11 @@ app.post("/register", (req, res) => {
 
   // knex.raw("insert into users(name, email) values(?, ?)", [name, email])
 
-  knex
-    .raw("insert into users(name, email) values(?, ?)", [name, email])
+  knex("users")
+    .insert({
+      name: name,
+      email: email,
+    })
     .then(() => {
       //query the db for the new user
       knex
@@ -58,12 +61,13 @@ app.post("/register", (req, res) => {
         .then((result) => {
           const id = result[0].id;
           //  create wallet
-          knex
-            .raw("insert into wallets(balance, user_id) values(?, ?)", [
-              0.0,
-              id,
-            ])
+          knex("wallets")
+            .insert({
+              balance: 0.0,
+              user_id: id,
+            })
             .then(() => {
+              //return new wallet
               knex
                 .select()
                 .from("wallets")
@@ -106,7 +110,7 @@ app.get("/:id", (req, res) => {
   knex
     .select()
     .from("users")
-    .where("id", `${id}`)
+    .where("id", id)
     .then((user) => {
       res.send(user);
     });
@@ -125,77 +129,84 @@ app.get("/:id/wallets", (req, res) => {
   knex
     .select()
     .from("wallets")
-    .where("id", `${id}`)
+    .where("user_id", id)
     .then((wallet) => {
       res.send(wallet);
     });
 });
 
-//user updates wallet
 app.post("/:id/wallets/fund", (req, res) => {
   const id = req.params.id;
-  const { funds } = req.body;
+  const { amount } = req.body;
 
   knex
     .select()
     .from("wallets")
-    .where("id", `${id}`)
+    .where("user_id", id)
     .then((wallet) => {
-      const check = parseFloat(wallet[0].balance);
+      const bal = parseFloat(wallet[0].balance);
 
-      const new_funds = check + funds;
-      console.log(new_funds);
+      const new_bal = bal + amount;
+      // console.log(new_bal);
 
-      knex
-        .raw("insert into wallets(balance, user_id) values($1, $2)", [
-          new_funds,
-          id,
-        ])
+      //update wallet
+      knex("wallets")
+        .where("user_id", id)
+        .update({
+          balance: new_bal,
+        })
         .then(() => {
-          // knex
-          //   .select()
-          //   .from("wallets")
-          //   .where("id", `${id}`)
-          //   .then((wallet) => {
-          //     res.send(wallet);
-          //   });
+          // return updated wallet
+          knex
+            .select()
+            .from("wallets")
+            .where("user_id", id)
+            .then((wallet) => {
+              res.send(wallet);
+            });
         });
     });
 
-  // knex.raw("insert into wallets(balance, user_id) values($1, $2) []");
+  // knex.raw("insert into wallets(balance, user_id) values(?, ?) []");
 });
 
 app.post("/:id/wallets/withdraw", (req, res) => {
   const id = req.params.id;
-  const { funds } = req.body;
+  const { amount } = req.body;
 
   knex
     .select()
     .from("wallets")
-    .where("id", `${id}`)
+    .where("user_id", id)
     .then((wallet) => {
-      const check = parseFloat(wallet[0].balance);
+      const bal = parseFloat(wallet[0].balance);
 
-      const new_funds = check + funds;
-      console.log(new_funds);
+      if (amount > bal) {
+        res.send("insufficient funds");
+      } else {
+        const new_bal = bal - amount;
+        console.log(new_bal);
 
-      knex
-        .raw("insert into wallets(balance, user_id) values($1, $2)", [
-          new_funds,
-          id,
-        ])
-        .then(() => {
-          // knex
-          //   .select()
-          //   .from("wallets")
-          //   .where("id", `${id}`)
-          //   .then((wallet) => {
-          //     res.send(wallet);
-          //   });
-        });
+        //update wallet
+        knex("wallets")
+          .where("user_id", id)
+          .update({
+            balance: new_bal,
+          })
+          .then(() => {
+            // return updated wallet
+            knex
+              .select()
+              .from("wallets")
+              .where("user_id", id)
+              .then((wallet) => {
+                res.send(wallet);
+              });
+          });
+      }
     });
 
-  // knex.raw("insert into wallets(balance, user_id) values($1, $2) []");
+  // knex.raw("insert into wallets(balance, user_id) values(?, ?) []");
 });
 
 app.listen(process.env.PORT || 8001, () => {
