@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 
 
-dotenv.config()
+dotenv.config({ path: "../.env" });
 // Update with your config settings.
 
 /**

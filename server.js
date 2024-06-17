@@ -10,7 +10,7 @@ dotenv.config();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-app.use("./", require("./routes/index.js"));
+app.use("/", require("./routes/index.js"));
 
 app.all("*", (req, res) => {
   res.status(404).send("not found");
