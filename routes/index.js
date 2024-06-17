@@ -221,56 +221,59 @@ userRouter.post("/:id/wallets/transfer", (req, res) => {
   const id = req.params.id;
   const { amount, beneficiary } = req.body;
 
-  // find wallet
-  knex
-    .select()
-    .from("wallets")
-    .where("user_id", id)
-    .then((wallet) => {
-      const bal = parseFloat(wallet[0].balance);
+  if (id == beneficiary) {
+    res.send("the sender and the receiver cannot be the same");
+  } else {
+    // find wallet
+    knex
+      .select()
+      .from("wallets")
+      .where("user_id", id)
+      .then((wallet) => {
+        const bal = parseFloat(wallet[0].balance);
 
-      if (amount > bal) {
-        res.send("insufficient funds");
-      } else {
-        const new_bal = bal - amount;
+        if (amount > bal) {
+          res.send("insufficient funds");
+        } else {
+          const new_bal = bal - amount;
 
-        //update wallet
-        knex("wallets")
-          .where("user_id", id)
-          .update({
-            balance: new_bal,
-          })
-          .then(() => {
-            //find beneficiary's wallet
-            knex
-              .select()
-              .from("wallets")
-              .where("user_id", beneficiary)
-              .then((wallet) => {
-                //update beneficiary's wallet
-                const ben_bal = parseFloat(wallet[0].balance);
+          //update wallet
+          knex("wallets")
+            .where("user_id", id)
+            .update({
+              balance: new_bal,
+            })
+            .then(() => {
+              //find beneficiary's wallet
+              knex
+                .select()
+                .from("wallets")
+                .where("user_id", beneficiary)
+                .then((wallet) => {
+                  //update beneficiary's wallet
+                  const ben_bal = parseFloat(wallet[0].balance);
 
-                const new_ben_bal = ben_bal + amount;
-                knex("wallets")
-                  .where("user_id", beneficiary)
-                  .update({
-                    balance: new_ben_bal,
-                  })
-                  .then(() => {
-                    // return updated wallet
-                    knex
-                      .select()
-                      .from("wallets")
-                      .where("user_id", id)
-                      .then((wallet) => {
-                        res.send(wallet);
-                      });
-                  });
-              });
-          });
-      }
-    });
-
+                  const new_ben_bal = ben_bal + amount;
+                  knex("wallets")
+                    .where("user_id", beneficiary)
+                    .update({
+                      balance: new_ben_bal,
+                    })
+                    .then(() => {
+                      // return updated wallet
+                      knex
+                        .select()
+                        .from("wallets")
+                        .where("user_id", id)
+                        .then((wallet) => {
+                          res.send(wallet);
+                        });
+                    });
+                });
+            });
+        }
+      });
+  }
   // knex.raw("insert into wallets(balance, user_id) values(?, ?) []");
 });
 
