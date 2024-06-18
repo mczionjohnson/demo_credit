@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --watch --verbose",
-    "dev": "nodemon server.js",
+    "test": "jest --watch -detectOpenHandles",
+    "dev": "nodemon start.js",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
     "create_table": "knex migrate:make create_users_and_wallets_tables",
@@ -23,6 +23,9 @@
     "express": "^4.19.2",
     "knex": "^3.1.0",
     "mysql2": "^3.10.1"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

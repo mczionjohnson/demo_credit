@@ -6,10 +6,12 @@ const axios = require("axios");
 
 userRouter.get("/", (req, res) => {
   // res.json({ message: "Fintech!" });
-  res.send({ message: "Welcome to the future of Fintech!" });
+  res.status(200).json({ message: "Welcome to the future of Fintech!" });
 });
 
 userRouter.get("/admin/wallets", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+
   //knex allows callbacks
   //knew.raw gives more data
   // knex.raw("select * from wallets").then((wallets) => {
@@ -20,67 +22,91 @@ userRouter.get("/admin/wallets", (req, res) => {
     .select()
     .from("wallets")
     .then((wallets) => {
-      res.send(wallets);
+      res.status(200).json({ message: "all wallets", wallets });
     });
 });
 
 userRouter.get("/admin/users", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+
   knex
     .select()
     .from("users")
     .then((users) => {
-      res.send(users);
+      res.status(200).json({ message: "all users", users });
     });
 });
 
 //user register
 userRouter.post("/register", async (req, res) => {
-  const { name, email } = req.body;
+  res.setHeader("Content-Type", "application/json");
 
-  try {
-    const response = await axios
-      .get(`https://adjutor.lendsqr.com/v2/verification/karma/${email}`, {
-        headers: { Authorization: process.env.API_KEY },
-      })
-      .then(() => {
-        res.send("not allowed");
-      });
-  } catch (error) {
-    // res.status(404).send("not found");
-    console.log(error.message);
-    // res.send("user not found");
-    knex("users")
-      .insert({
-        name: name,
-        email: email,
-      })
-      .then(() => {
-        //query the db for the new user
-        knex
-          .select()
-          .from("users")
-          .where("email", email)
-          .then((result) => {
-            const id = result[0].id;
-            //  create wallet
-            knex("wallets")
-              .insert({
-                balance: 0.0,
-                user_id: id,
-              })
-              .then(() => {
-                //return new wallet
-                knex
-                  .select()
-                  .from("wallets")
-                  .where("user_id", id)
-                  .then((user) => {
-                    res.send(user);
+  const { name, email } = req.body;
+  // console.log(name, email);
+
+  // try {
+  // const response = await axios
+  //   .get(`https://adjutor.lendsqr.com/v2/verification/karma/${email}`, {
+  //     headers: { Authorization: process.env.API_KEY },
+  //   })
+  //   .then(() => {
+  //     res.send("not allowed");
+  //   });
+  // } catch (error) {
+  // res.status(404).send("not found");
+  // console.log(error.message, ", user not on blacklist");
+  // res.send("user not found");
+  knex
+    .select()
+    .from("users")
+    .where("email", email)
+    .then((result) => {
+      console.log("here0");
+      if (result[0].email == email) {
+        res.status(422).json({ message: "email is already registered" });
+      } else {
+        knex("users")
+          .insert({
+            name: name,
+            email: email,
+          })
+          .then(() => {
+            console.log("here1");
+            //query the db for the new user
+            knex
+              .select()
+              .from("users")
+              .where("email", email)
+              .then((result) => {
+                console.log("here2");
+
+                const id = result[0].id;
+                //  create wallet
+                knex("wallets")
+                  .insert({
+                    balance: 0.0,
+                    user_id: id,
+                  })
+                  .then(() => {
+                    console.log("here3");
+
+                    //return new wallet
+                    knex
+                      .select()
+                      .from("wallets")
+                      .where("user_id", id)
+                      .then((wallet) => {
+                        res.json({ message: "success", wallet });
+                      });
                   });
               });
+          })
+          .catch((error) => {
+            console.log(error);
           });
-      });
-  }
+      }
+    });
+  // }
 
   // knex.raw("insert into users(name, email) values(?, ?)", [name, email])
 });
@@ -95,10 +121,10 @@ userRouter.post("/login", (req, res) => {
       .from("users")
       .where("email", email)
       .then((user) => {
-        res.send(user);
+        res.json({ message: "success", user });
       });
   } else {
-    res.send("please provide token");
+    res.json({ message: "please provide token" });
   }
 });
 
@@ -117,7 +143,7 @@ userRouter.get("/:id", (req, res) => {
     .from("users")
     .where("id", id)
     .then((user) => {
-      res.send(user);
+      res.json({ message: "profile", user });
     });
 });
 
@@ -136,7 +162,7 @@ userRouter.get("/:id/wallets", (req, res) => {
     .from("wallets")
     .where("user_id", id)
     .then((wallet) => {
-      res.send(wallet);
+      res.json({ message: "my wallet", wallet });
     });
 });
 
@@ -168,7 +194,7 @@ userRouter.post("/:id/wallets/fund", (req, res) => {
             .from("wallets")
             .where("user_id", id)
             .then((wallet) => {
-              res.send(wallet);
+              res.json({ message: "deposit successful", wallet });
             });
         });
     });
@@ -189,7 +215,7 @@ userRouter.post("/:id/wallets/withdraw", (req, res) => {
       const bal = parseFloat(wallet[0].balance);
 
       if (amount > bal) {
-        res.send("insufficient funds");
+        res.json({ message: "insufficient funds" });
       } else {
         const new_bal = bal - amount;
         console.log(new_bal);
@@ -207,7 +233,7 @@ userRouter.post("/:id/wallets/withdraw", (req, res) => {
               .from("wallets")
               .where("user_id", id)
               .then((wallet) => {
-                res.send(wallet);
+                res.json({ message: "withdraw successful", wallet });
               });
           });
       }
@@ -222,7 +248,7 @@ userRouter.post("/:id/wallets/transfer", (req, res) => {
   const { amount, beneficiary } = req.body;
 
   if (id == beneficiary) {
-    res.send("the sender and the receiver cannot be the same");
+    res.json({ message: "the sender and the receiver cannot be the same" });
   } else {
     // find wallet
     knex
@@ -233,7 +259,7 @@ userRouter.post("/:id/wallets/transfer", (req, res) => {
         const bal = parseFloat(wallet[0].balance);
 
         if (amount > bal) {
-          res.send("insufficient funds");
+          res.json({ message: "insufficient funds" });
         } else {
           const new_bal = bal - amount;
 
@@ -266,7 +292,7 @@ userRouter.post("/:id/wallets/transfer", (req, res) => {
                         .from("wallets")
                         .where("user_id", id)
                         .then((wallet) => {
-                          res.send(wallet);
+                          res.json({ message: "transfer succesful", wallet });
                         });
                     });
                 });
